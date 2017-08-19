@@ -15,13 +15,6 @@ $SCREENHIDE
 '$INCLUDE:'global\constants.bas'
 '$INCLUDE:'subs_functions\extensions\opengl\opengl_global.bas'
 
-'INCLUDE:'qb_framework\qb_framework_global.bas'
-DEFLNG A-Z
-
-'INCLUDE:'virtual_keyboard\virtual_keyboard_global.bas'
-DEFLNG A-Z
-
-'$INCLUDE:'android\android_global.bas'
 DEFLNG A-Z
 
 '-------- Optional IDE Component (1/2) --------
@@ -31,11 +24,6 @@ REDIM SHARED OName(0) AS STRING 'Operation Name
 REDIM SHARED PL(0) AS INTEGER 'Priority Level
 DIM SHARED QuickReturn AS INTEGER
 Set_OrderOfOperations 'This will also make certain our directories are valid, and if not make them.
-
-DIM SHARED MakeAndroid 'build an Android project (refer to SUB UseAndroid)
-DIM SHARED VirtualKeyboardState
-DIM SHARED DesiredVirtualKeyboardState
-DIM SHARED RecompileAttemptsForVirtualKeyboardState
 
 REDIM EveryCaseSet(100), SelectCaseCounter AS _UNSIGNED LONG
 DIM ExecLevel(255), ExecCounter AS INTEGER
@@ -1020,7 +1008,7 @@ IF C = 9 THEN 'run
         END IF
 
         IF path.exe$ = "" THEN
-            IF INSTR(_OS$, "WIN") THEN path.exe$ = "..\..\" ELSE path.exe$ = "../../"
+            IF INSTR(_OS$, "WIN") THEN path.exe$ = "..\..\" ELSE path.exe$ = "../../" '"
         END IF
 
         'inform IDE of name change if necessary (IDE will respond with message 9 and corrected name)
@@ -1034,137 +1022,6 @@ IF C = 9 THEN 'run
         ideret6:
         idecompiled = 1
     END IF
-
-
-    IF MakeAndroid THEN
-
-
-        CreateAndroidProject file$
-
-
-        'generate program name
-
-
-        'pf$ = "programs\android\" + file$
-
-        'IF _DIREXISTS(pf$) = 0 THEN
-        '    'once only setup
-
-        '    COLOR 7, 1: LOCATE idewy - 3, 2: PRINT SPACE$(idewx - 2);: LOCATE idewy - 2, 2: PRINT SPACE$(idewx - 2);: LOCATE idewy - 1, 2: PRINT SPACE$(idewx - 2); 'clear status window
-        '    LOCATE idewy - 3, 2: PRINT "Initializing project [programs\android\" + file$ + "]...";
-        '    PCOPY 3, 0
-
-
-        '    MKDIR pf$
-        '    SHELL _HIDE "cmd /c xcopy /e programs\android\project_template\*.* " + pf$
-        '    SHELL _HIDE "cmd /c xcopy /e programs\android\eclipse_template\*.* " + pf$
-
-        '    'modify templates
-        '    fr_fh = FREEFILE
-        '    OPEN pf$ + "\AndroidManifest.xml" FOR BINARY AS #fr_fh
-        '    a$ = SPACE$(LOF(fr_fh))
-        '    GET #fr_fh, , a$
-        '    CLOSE fr_fh
-        '    OPEN pf$ + "\AndroidManifest.xml" FOR OUTPUT AS #fr_fh
-        '    ss$ = CHR$(34) + "com.example.native_activity" + CHR$(34)
-        '    file_namespace$ = LCASE$(file$)
-        '    a = ASC(file_namespace$)
-        '    IF a >= 48 AND a <= 57 THEN file_namespace$ = "ns_" + file_namespace$
-        '    i = INSTR(a$, ss$)
-        '    a$ = LEFT$(a$, i - 1) + CHR$(34) + "com.example." + file_namespace$ + CHR$(34) + RIGHT$(a$, LEN(a$) - i - LEN(ss$) + 1)
-        '    PRINT #fr_fh, a$;
-        '    CLOSE fr_fh
-
-        '    fr_fh = FREEFILE
-        '    OPEN pf$ + "\res\values\strings.xml" FOR BINARY AS #fr_fh
-        '    a$ = SPACE$(LOF(fr_fh))
-        '    GET #fr_fh, , a$
-        '    CLOSE fr_fh
-        '    OPEN pf$ + "\res\values\strings.xml" FOR OUTPUT AS #fr_fh
-        '    ss$ = ">NativeActivity<"
-        '    i = INSTR(a$, ss$)
-        '    a$ = LEFT$(a$, i - 1) + ">" + file$ + "<" + RIGHT$(a$, LEN(a$) - i - LEN(ss$) + 1)
-        '    PRINT #fr_fh, a$;
-        '    CLOSE fr_fh
-
-        '    fr_fh = FREEFILE
-        '    OPEN pf$ + "\.project" FOR BINARY AS #fr_fh
-        '    a$ = SPACE$(LOF(fr_fh))
-        '    GET #fr_fh, , a$
-        '    CLOSE fr_fh
-        '    OPEN pf$ + "\.project" FOR OUTPUT AS #fr_fh
-        '    ss$ = "<name>NativeActivity</name>"
-        '    i = INSTR(a$, ss$)
-        '    a$ = LEFT$(a$, i - 1) + "<name>" + file$ + "</name>" + RIGHT$(a$, LEN(a$) - i - LEN(ss$) + 1)
-        '    PRINT #fr_fh, a$;
-        '    CLOSE fr_fh
-
-        '    IF _DIREXISTS(pf$ + "\jni\temp") = 0 THEN MKDIR pf$ + "\jni\temp"
-
-        '    IF _DIREXISTS(pf$ + "\jni\c") = 0 THEN MKDIR pf$ + "\jni\c"
-
-        '    'c
-        '    ex_fh = FREEFILE
-        '    OPEN "internal\temp\xcopy_exclude.txt" FOR OUTPUT AS #ex_fh
-        '    PRINT #ex_fh, "c_compiler\"
-        '    CLOSE ex_fh
-        '    SHELL _HIDE "cmd /c xcopy /e /EXCLUDE:internal\temp\xcopy_exclude.txt internal\c\*.* " + pf$ + "\jni\c"
-
-        'ELSE
-
-        '    COLOR 7, 1: LOCATE idewy - 3, 2: PRINT SPACE$(idewx - 2);: LOCATE idewy - 2, 2: PRINT SPACE$(idewx - 2);: LOCATE idewy - 1, 2: PRINT SPACE$(idewx - 2); 'clear status window
-        '    LOCATE idewy - 3, 2: PRINT "Updating project [programs\android\" + file$ + "]...";
-        '    PCOPY 3, 0
-
-        'END IF
-
-        ''temp
-        'SHELL _HIDE "cmd /c del " + pf$ + "\jni\temp\*.txt"
-        'SHELL _HIDE "cmd /c copy " + tmpdir$ + "*.txt " + pf$ + "\jni\temp"
-
-        ''touch main.cpp (for ndk)
-        'fr_fh = FREEFILE
-        'OPEN pf$ + "\jni\main.cpp" FOR BINARY AS #fr_fh
-        'a$ = SPACE$(LOF(fr_fh))
-        'GET #fr_fh, , a$
-        'CLOSE fr_fh
-        'OPEN pf$ + "\jni\main.cpp" FOR OUTPUT AS #fr_fh
-        'IF ASC(a$, LEN(a$)) <> 32 THEN a$ = a$ + " " ELSE a$ = LEFT$(a$, LEN(a$) - 1)
-        'PRINT #fr_fh, a$;
-        'CLOSE fr_fh
-
-        ''note: .bat files affect the directory they are called from
-        'CHDIR pf$
-        'IF INSTR(IdeAndroidStartScript$, ":") THEN
-        '    SHELL _HIDE IdeAndroidMakeScript$
-        'ELSE
-        '    SHELL _HIDE "..\..\..\" + IdeAndroidMakeScript$
-        'END IF
-        'CHDIR "..\..\.."
-
-        '''touch manifest (for Eclipse)
-        ''fr_fh = FREEFILE
-        ''OPEN pf$ + "\AndroidManifest.xml" FOR BINARY AS #fr_fh
-        ''a$ = SPACE$(LOF(fr_fh))
-        ''GET #fr_fh, , a$
-        ''CLOSE fr_fh
-        ''OPEN pf$ + "\AndroidManifest.xml" FOR OUTPUT AS #fr_fh
-        ''IF ASC(a$, LEN(a$)) <> 32 THEN a$ = a$ + " " ELSE a$ = LEFT$(a$, LEN(a$) - 1)
-        ''PRINT #fr_fh, a$;
-        ''CLOSE fr_fh
-        ''^^^^above inconsistent^^^^
-
-        ''clear the gen folder (for Eclipse)
-        'IF _DIREXISTS(pf$ + "\gen") THEN
-        '    SHELL _HIDE "cmd /c rmdir /s /q " + pf$ + "\gen"
-        '    SHELL _HIDE "cmd /c md " + pf$ + "\gen"
-        'END IF
-
-        sendc$ = CHR$(11) '".EXE file created" aka "Android project created"
-        GOTO sendcommand
-
-    END IF
-
 
     IF iderunmode = 2 THEN
         sendc$ = CHR$(11) '.EXE file created
@@ -1303,23 +1160,8 @@ sflistn = -1 'no entries
 
 SubNameLabels = sp 'QB64 will perform a repass to resolve sub names used as labels
 
-DesiredVirtualKeyboardState = 0
-IF MakeAndroid THEN DesiredVirtualKeyboardState = 1
-RecompileAttemptsForVirtualKeyboardState = 0
 
 recompile:
-
-'For installing Android assets
-REDIM SHARED installFiles(0) AS STRING
-REDIM SHARED installFilesSourceLocation(0) AS STRING
-REDIM SHARED installFilesIn(0) AS STRING
-REDIM SHARED installFolder(0) AS STRING
-REDIM SHARED installFolderSourceLocation(0) AS STRING
-REDIM SHARED installFolderIn(0) AS STRING
-
-'move desired state into active state
-VirtualKeyboardState = DesiredVirtualKeyboardState
-
 lastLineReturn = 0
 lastLine = 0
 firstLine = 1
@@ -1687,21 +1529,6 @@ DO
     ideprepass:
     prepassLastLine:
 
-    IF lastLine <> 0 OR firstLine <> 0 THEN
-        lineBackup$ = wholeline$ 'backup the real line (will be blank when lastline is set)
-        IF VirtualKeyboardState THEN
-            IF firstLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\header.bas"
-            IF lastLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\footer.bas"
-        ELSE
-            IF firstLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\header_stub.bas"
-            IF lastLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\footer_stub.bas"
-        END IF
-        firstLine = 0: lastLine = 0
-        GOTO forceInclude_prepass
-        forceIncludeCompleted_prepass:
-        wholeline$ = lineBackup$
-    END IF
-
     wholestv$ = wholeline$ '### STEVE EDIT FOR CONST EXPANSION 10/11/2013
 
     prepass = 1
@@ -1722,31 +1549,6 @@ DO
 
         temp$ = LTRIM$(RTRIM$(UCASE$(wholestv$)))
 
-        IF temp$ = "$VIRTUALKEYBOARD:ON" THEN
-            DesiredVirtualKeyboardState = 1
-            IF VirtualKeyboardState = 0 THEN
-                IF RecompileAttemptsForVirtualKeyboardState = 0 THEN
-                    'this is the first time a conflict has occurred, so react immediately with a full recompilation using the desired state
-                    RecompileAttemptsForVirtualKeyboardState = RecompileAttemptsForVirtualKeyboardState + 1
-                    GOTO do_recompile
-                ELSE
-                    'continue compilation to retrieve the final state requested and act on that as required
-                END IF
-            END IF
-        END IF
-
-        IF temp$ = "$VIRTUALKEYBOARD:OFF" THEN
-            DesiredVirtualKeyboardState = 0
-            IF VirtualKeyboardState <> 0 THEN
-                IF RecompileAttemptsForVirtualKeyboardState = 0 THEN
-                    'this is the first time a conflict has occurred, so react immediately with a full recompilation using the desired state
-                    RecompileAttemptsForVirtualKeyboardState = RecompileAttemptsForVirtualKeyboardState + 1
-                    GOTO do_recompile
-                ELSE
-                    'continue compilation to retrieve the final state requested and act on that as required
-                END IF
-            END IF
-        END IF
 
         IF LEFT$(temp$, 5) = "$LET " THEN
             temp$ = LTRIM$(MID$(temp$, 5)) 'simply shorten our string to parse
@@ -2734,13 +2536,6 @@ DO
         IF inclevel = 0 THEN
             includingFromRoot = 0
             forceIncludingFile = 0
-            forceInclude_prepass:
-            IF forceIncludeFromRoot$ <> "" THEN
-                a$ = forceIncludeFromRoot$
-                forceIncludeFromRoot$ = ""
-                forceIncludingFile = 1
-                includingFromRoot = 1
-            END IF
         END IF
 
         IF inclevel = 100 THEN a$ = "Too many indwelling INCLUDE files": GOTO errmes
@@ -2808,10 +2603,6 @@ DO
         '3. Close & return control
         CLOSE #fh
         inclevel = inclevel - 1
-        IF forceIncludingFile = 1 AND inclevel = 0 THEN
-            forceIncludingFile = 0
-            GOTO forceIncludeCompleted_prepass
-        END IF
     LOOP
     '(end manager)
 
@@ -2920,21 +2711,6 @@ DO
     ide4:
     includeline:
     mainpassLastLine:
-
-    IF lastLine <> 0 OR firstLine <> 0 THEN
-        lineBackup$ = a3$ 'backup the real first line (will be blank when lastline is set)
-        IF VirtualKeyboardState THEN
-            IF firstLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\header.bas"
-            IF lastLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\footer.bas"
-        ELSE
-            IF firstLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\header_stub.bas"
-            IF lastLine <> 0 THEN forceIncludeFromRoot$ = "source\virtual_keyboard\embed\footer_stub.bas"
-        END IF
-        firstLine = 0: lastLine = 0
-        GOTO forceInclude
-        forceIncludeCompleted:
-        a3$ = lineBackup$
-    END IF
 
     prepass = 0
 
@@ -3099,103 +2875,6 @@ DO
         IF ExecLevel(ExecCounter) THEN 'don't check for any more metacommands except the one's which worth with the precompiler
             layoutdone = 0
             GOTO finishednonexec 'we don't check for anything inside lines that we've marked for skipping
-        END IF
-
-
-
-        '$INSTALLFILES [src_relative_to_bas_path_like_include]  [IN dst_relative_to_application_root]
-        '$INSTALLFOLDER  [src_relative_to_bas_path_like_include]  [IN dst_relative_to_application_root]
-        metacommand$ = ""
-        IF INSTR(a3u$, "$INSTALLFILES ") = 1 THEN metacommand$ = "$INSTALLFILES"
-        IF INSTR(a3u$, "$INSTALLFOLDER ") = 1 THEN metacommand$ = "$INSTALLFOLDER"
-        metacommandHint$ = "Expected " + CHR$(34) + "source-location" + CHR$(34) + " [IN " + CHR$(34) + "dest-location" + CHR$(34) + "]"
-        IF metacommand$ <> "" THEN
-            sourceContent$ = ""
-            destLocation$ = ""
-            i3step = 0
-            i3start = 0
-            a4$ = a3$ + " '" 'finish with whitespace and comment
-            a3string$ = ""
-            l$ = metacommand$
-            FOR i3 = LEN(metacommand$) + 2 TO LEN(a4$)
-                c3 = ASC(a4$, i3)
-                whitespace = 0
-                IF i3start = 0 AND c3 = 39 THEN
-                    IF i3 <> LEN(metacommand$) + 2 THEN l$ = l$ + sp + MID$(a3$, i3) 'trailing comment
-                    EXIT FOR
-                END IF
-                IF c3 = 32 OR c3 = 9 THEN whitespace = 1
-                IF c3 = 34 OR i3start <> 0 THEN
-                    IF c3 = 34 THEN
-                        IF i3start = 0 THEN
-                            i3start = i3
-                        ELSE
-                            a3quotedString$ = MID$(a3$, i3start + 1, i3 - i3start - 1)
-                            l$ = l$ + sp + CHR$(34) + a3quotedString$ + CHR$(34)
-                            IF i3step <> 0 AND i3step <> 2 THEN a$ = metacommandHint$: GOTO errmes
-                            IF i3step = 0 THEN sourceContent$ = a3quotedString$: i3step = 1
-                            IF i3step = 2 THEN destLocation$ = a3quotedString$: i3step = 3
-                            i3start = 0
-                        END IF
-                    END IF
-                ELSE
-                    IF whitespace = 0 THEN
-                        a3string$ = a3string$ + CHR$(c3)
-                    ELSE
-                        IF a3string$ <> "" THEN
-                            IF UCASE$(a3string$) <> "IN" THEN a$ = metacommandHint$: GOTO errmes
-                            IF i3step <> 1 THEN a$ = metacommandHint$: GOTO errmes
-                            l$ = l$ + sp + "IN"
-                            i3step = 2
-                            a3string$ = ""
-                        END IF
-                    END IF
-                END IF
-            NEXT
-            IF LEN(a3string$) THEN a$ = metacommandHint$: GOTO errmes
-            IF i3start <> 0 THEN a$ = metacommandHint$: GOTO errmes
-            IF i3step = 0 OR i3step = 2 THEN a$ = metacommandHint$: GOTO errmes
-            'PRINT sourceContent$
-            'PRINT destLocation$
-
-            sourceLocation$ = ""
-            IF inclevel = 0 THEN
-                IF idemode THEN p$ = idepath$ + pathsep$ ELSE p$ = getfilepath$(sourcefile$)
-            ELSE
-                p$ = getfilepath$(incname(inclevel))
-            END IF
-            sourceLocation$ = p$
-
-            IF metacommand$ = "$INSTALLFILES" THEN
-                AryAddStr installFiles(), sourceContent$
-                AryAddStr installFilesSourceLocation(), sourceLocation$
-                AryAddStr installFilesIn(), destLocation$
-            ELSE
-                AryAddStr installFolder(), sourceContent$
-                AryAddStr installFolderSourceLocation(), sourceLocation$
-                AryAddStr installFolderIn(), destLocation$
-            END IF
-
-            IF Cloud THEN a$ = "Feature not supported on QLOUD": GOTO errmes '***NOCLOUD***
-            layout$ = l$
-            GOTO finishednonexec
-        END IF
-
-        'IF a3u$ = "$RESIZE:SMOOTH" THEN
-        '    IF Cloud THEN a$ = "Feature not supported on QLOUD": GOTO errmes '***NOCLOUD***
-        '    layout$ = "$RESIZE:SMOOTH"
-        '    Resize = 1: Resize_Scale = 2
-        '    GOTO finishednonexec
-        'END IF
-
-        IF a3u$ = "$VIRTUALKEYBOARD:ON" THEN
-            layout$ = "$VIRTUALKEYBOARD:ON"
-            GOTO finishednonexec
-        END IF
-
-        IF a3u$ = "$VIRTUALKEYBOARD:OFF" THEN
-            layout$ = "$VIRTUALKEYBOARD:OFF"
-            GOTO finishednonexec
         END IF
 
         IF a3u$ = "$CHECKING:OFF" THEN
@@ -10666,13 +10345,6 @@ DO
             IF inclevel = 0 THEN
                 includingFromRoot = 0
                 forceIncludingFile = 0
-                forceInclude:
-                IF forceIncludeFromRoot$ <> "" THEN
-                    a$ = forceIncludeFromRoot$
-                    forceIncludeFromRoot$ = ""
-                    forceIncludingFile = 1
-                    includingFromRoot = 1
-                END IF
             END IF
 
             IF inclevel = 100 THEN a$ = "Too many indwelling INCLUDE files": GOTO errmes
@@ -10736,10 +10408,6 @@ DO
             CLOSE #fh
             inclevel = inclevel - 1
             IF inclevel = 0 THEN
-                IF forceIncludingFile = 1 THEN
-                    forceIncludingFile = 0
-                    GOTO forceIncludeCompleted
-                END IF
                 'restore line formatting
                 layoutok = layoutok_backup
                 layout$ = layout_backup$
@@ -11049,11 +10717,6 @@ FOR x = 1 TO commonarraylistn
     END IF
 NEXT
 IF Debug THEN PRINT #9, "Finished COMMON array list check!"
-
-IF DesiredVirtualKeyboardState <> VirtualKeyboardState THEN
-    RecompileAttemptsForVirtualKeyboardState = RecompileAttemptsForVirtualKeyboardState + 1
-    recompile = 1
-END IF
 
 IF recompile THEN
     do_recompile:
@@ -11900,39 +11563,6 @@ IF DEPENDENCY(DEPENDENCY_AUDIO_OUT) THEN
     IF mac THEN defines$ = defines$ + " -framework AudioUnit -framework AudioToolbox "
 END IF
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-IF MakeAndroid THEN
-
-
-
-
-
-
-
-    GOTO Skip_Build
-END IF
 
 IF os$ = "WIN" THEN
 
@@ -23299,32 +22929,6 @@ ELSE
 END IF
 END SUB
 
-SUB UseAndroid (Yes)
-
-STATIC inline_DATA_backup
-STATIC inline_DATA_backup_set
-IF inline_DATA_backup_set = 0 THEN
-    inline_DATA_backup_set = 1
-    inline_DATA_backup = inline_DATA
-END IF
-
-IF Yes THEN
-    IF MakeAndroid = 0 THEN
-        MakeAndroid = 1
-        inline_DATA = 1
-        idechangemade = 1
-        IDEBuildModeChanged = 1
-    END IF
-ELSE
-    IF MakeAndroid THEN
-        MakeAndroid = 0
-        inline_DATA = inline_DATA_backup
-        idechangemade = 1
-        IDEBuildModeChanged = 1
-    END IF
-END IF
-
-END SUB
 
 'Steve Subs/Functins for _MATH support with CONST
 FUNCTION Evaluate_Expression$ (e$)
@@ -25348,13 +24952,6 @@ END FUNCTION
 
 '$INCLUDE:'subs_functions\extensions\opengl\opengl_methods.bas'
 
-'INCLUDE:'qb_framework\qb_framework_methods.bas'
-DEFLNG A-Z
-
-'INCLUDE:'virtual_keyboard\virtual_keyboard_methods.bas'
-DEFLNG A-Z
-
-'$INCLUDE:'android\android_methods.bas'
 DEFLNG A-Z
 
 '-------- Optional IDE Component (2/2) --------
