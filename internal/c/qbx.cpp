@@ -4,11 +4,6 @@
  #include <ApplicationServices/ApplicationServices.h>
 #endif
 
-#ifdef QB64_ANDROID
- #include <cstdlib>
- #include <cmath>
-#endif
-
 #include "parts/user_mods/src.cpp"
 
 /* testing only
@@ -60,12 +55,7 @@ extern int32 sub_gl_called;
     ymin = -ymax;
     xmin = ymin * aspect;
     xmax = ymax * aspect;
-#ifdef QB64_GLES1
-    glFrustumf(xmin, xmax, ymin, ymax, zNear, zFar);
-#else
     glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
-#endif
-
  }
 
 #endif

@@ -2,52 +2,7 @@
 #include "libqb.h"
 
 #ifdef QB64_GUI
- #ifndef QB64_GLES
   #include "parts/core/glew/src/glew.c"
- #else
-  //GLEW does not appear to support GLES, so "wrangle" the required functionality here
-  #define glGenFramebuffers glGenFramebuffersOES
-  #define glGenFramebuffersEXT glGenFramebuffersOES
-  #define glDeleteFramebuffers glDeleteFramebuffersOES
-  #define glDeleteFramebuffersEXT glDeleteFramebuffersOES
-  #define glBindFramebuffer glBindFramebufferOES
-  #define glBindFramebufferEXT glBindFramebufferOES
-  #define glFramebufferTexture2D glFramebufferTexture2DOES
-  #define glFramebufferTexture2DEXT glFramebufferTexture2DOES
-  #define glFramebufferRenderbuffer glFramebufferRenderbufferOES
-  #define glCheckFramebufferStatus glCheckFramebufferStatusOES
-  #define GL_FRAMEBUFFER GL_FRAMEBUFFER_OES
-  #define GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_OES
-  #define glGenRenderbuffers glGenRenderbuffersOES
-  #define glDeleteRenderbuffers glDeleteRenderbuffersOES
-  #define glBindRenderbuffer glBindRenderbufferOES
-  #define glRenderbufferTexture2D glRenderbufferTexture2DOES
-  #define glRenderbufferTexture2DEXT glRenderbufferTexture2DOES
-  #define glRenderbufferRenderbuffer glRenderbufferRenderbufferOES
-  #define glGetRenderbufferParameteriv glGetRenderbufferParameterivOES
-  #define glRenderbufferStorage glRenderbufferStorageOES
-  #define GL_RENDERBUFFER GL_RENDERBUFFER_OES
-  #define GL_RENDERBUFFER_WIDTH GL_RENDERBUFFER_WIDTH_OES
-  #define GL_RENDERBUFFER_HEIGHT GL_RENDERBUFFER_HEIGHT_OES
-  #define GL_RENDERBUFFER_INTERNAL_FORMAT GL_RENDERBUFFER_INTERNAL_FORMAT_OES
-  #define GL_MAX_RENDERBUFFER_SIZE GL_MAX_RENDERBUFFER_SIZE_OES
-  #define GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0_OES
-  #define GL_DEPTH_ATTACHMENT GL_DEPTH_ATTACHMENT_OES
-  #define GL_DEPTH_COMPONENT16 GL_DEPTH_COMPONENT16_OES
-  #define glOrtho glOrthof
-  //...
-  
-  #define GL_BGRA GL_RGBA //this is to prevent errors and ensure RGBA is used even when BGRA is supported
-
- #endif
-#endif
-
-
-#ifdef QB64_ANDROID
-  #include <cstdlib> //required for system()
-  struct android_app* android_state;
-  JavaVM* android_vm;
-  JNIEnv* android_env;
 #endif
 
 
@@ -226,9 +181,7 @@ extern "C" int qb64_custom_event(int event,int v1,int v2,int v3,int v4,int v5,in
 #ifdef QB64_LINUX
 #ifdef QB64_GUI //Cannot have X11 events without a GUI
 #ifndef QB64_MACOSX
-#ifndef QB64_ANDROID
   extern "C" void qb64_os_event_linux(XEvent *event, Display *display, int *qb64_os_event_info);
-#endif
 #endif
 #endif
 #endif
@@ -816,7 +769,7 @@ int64 orwl_gettime(void) {
 #endif
 
 int64 GetTicks(){
-#if defined QB64_LINUX && !defined QB64_MACOSX // && !defined QB64_ANDROID //NOTE: ANDROID MUST USE THIS TOO
+#if defined QB64_LINUX && !defined QB64_MACOSX
   struct timespec tp;
   clock_gettime(CLOCK_MONOTONIC, &tp);
   return tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
@@ -1165,8 +1118,6 @@ mem_lock *mem_lock_tmp;
 int32 mem_lock_freed_max=1000;//number of allocated entries
 int32 mem_lock_freed_n=0;//number of entries
 ptrszint *mem_lock_freed=(ptrszint*)malloc(sizeof(ptrszint)*mem_lock_freed_max);
-
-//inline removed because it is incompatible with Android studio x86 build
 
 void new_mem_lock(){
   if (mem_lock_freed_n){
@@ -3773,11 +3724,6 @@ int MessageBox2(int ignore,char* message,char* title,int type){
       }
     exit(0);//should log error
   }
-
-  #ifdef QB64_ANDROID
-    showErrorOnScreen(message, 0, 0);//display error message on screen and enter infinite loop
-  #endif
-
   return MessageBox(NULL,message,title,type);
 }
 
@@ -7285,11 +7231,6 @@ void fix_error(){
     errtitle = (char*)malloc(len + 1);
     if (!errtitle) exit(0); //At this point we just give up
     snprintf(errtitle, len + 1, FIXERRMSG_TITLE, (!prevent_handling ? FIXERRMSG_UNHAND : FIXERRMSG_CRIT), new_error);
-
-//Android cannot halt threads, so the easiest compromise is to just display the error
-#ifdef QB64_ANDROID
-        showErrorOnScreen(cp, new_error, ercl);
-#endif
 
     if (prevent_handling){
       v=MessageBox2(NULL,errmess,errtitle,MB_OK);
@@ -18102,7 +18043,7 @@ int32 func_command_count = 0;
 qbs *func_command(int32 index, int32 passed){
   static qbs *tqbs;
   if (passed) { //Get specific parameter
-    //If out of bounds or error getting cmdline args (on Android, perhaps), return empty string.
+    //If out of bounds or error getting cmdline args, return empty string.
     if (index >= func_command_count || index < 0 || func_command_array==NULL) {tqbs = qbs_new(0, 1); return tqbs;}
     int len = strlen(func_command_array[index]);
     //Create new temp qbs and copy data into it.
@@ -19716,9 +19657,7 @@ void sub_mkdir(qbs *str){
     if (!screen_hide){
       while (!window_exists){Sleep(100);}      
       #ifdef QB64_GLUT
-      #ifndef QB64_ANDROID
       glutSetCursor(GLUT_CURSOR_NONE);
-      #endif
       #endif
     }
     #endif
@@ -19752,9 +19691,7 @@ void sub_mkdir(qbs *str){
 
     if (!screen_hide){
       while (!window_exists){Sleep(100);}
-      #ifndef QB64_ANDROID
       glutSetCursor(mouse_cursor_style);
-      #endif
     }
 
 #endif
@@ -29508,12 +29445,6 @@ qbs *func__startdir(){
 
 qbs *rootDir=NULL;//the dir moved to when program begins
 
-char *android_dir_downloads=NULL;
-char *android_dir_documents=NULL;
-char *android_dir_pictures=NULL;
-char *android_dir_music=NULL;
-char *android_dir_video=NULL;
-char *android_dir_dcim=NULL;
 
 qbs *func__dir(qbs* context_in){
     
@@ -29523,10 +29454,6 @@ qbs *func__dir(qbs* context_in){
 	qbs_set(context,qbs_ucase(context_in));
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("TEXT"))||qbs_equal(qbs_ucase(context),qbs_new_txt("DOCUMENT"))||qbs_equal(qbs_ucase(context),qbs_new_txt("DOCUMENTS"))||qbs_equal(qbs_ucase(context),qbs_new_txt("MY DOCUMENTS"))){
-		#ifdef QB64_ANDROID
-            mkdir(android_dir_documents,0770);
-			return qbs_new_txt(android_dir_documents);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,5,NULL,0,osPath))){ //Documents
@@ -29536,10 +29463,6 @@ qbs *func__dir(qbs* context_in){
 	}
 	
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("MUSIC"))||qbs_equal(qbs_ucase(context),qbs_new_txt("AUDIO"))||qbs_equal(qbs_ucase(context),qbs_new_txt("SOUND"))||qbs_equal(qbs_ucase(context),qbs_new_txt("SOUNDS"))||qbs_equal(qbs_ucase(context),qbs_new_txt("MY MUSIC"))){
-		#ifdef QB64_ANDROID
-            mkdir(android_dir_music,0770);
-			return qbs_new_txt(android_dir_music);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,13,NULL,0,osPath))){ //Music
@@ -29549,10 +29472,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("PICTURE"))||qbs_equal(qbs_ucase(context),qbs_new_txt("PICTURES"))||qbs_equal(qbs_ucase(context),qbs_new_txt("IMAGE"))||qbs_equal(qbs_ucase(context),qbs_new_txt("IMAGES"))||qbs_equal(qbs_ucase(context),qbs_new_txt("MY PICTURES"))){
-		#ifdef QB64_ANDROID
-            		mkdir(android_dir_pictures,0770);
-			return qbs_new_txt(android_dir_pictures);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,39,NULL,0,osPath))){//Pictures
@@ -29562,10 +29481,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("DCIM"))||qbs_equal(qbs_ucase(context),qbs_new_txt("CAMERA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("CAMERA ROLL"))||qbs_equal(qbs_ucase(context),qbs_new_txt("PHOTO"))||qbs_equal(qbs_ucase(context),qbs_new_txt("PHOTOS"))){
-		#ifdef QB64_ANDROID
-            		mkdir(android_dir_dcim,0770);
-			return qbs_new_txt(android_dir_dcim);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,39,NULL,0,osPath))){//Pictures
@@ -29575,10 +29490,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("MOVIE"))||qbs_equal(qbs_ucase(context),qbs_new_txt("MOVIES"))||qbs_equal(qbs_ucase(context),qbs_new_txt("VIDEO"))||qbs_equal(qbs_ucase(context),qbs_new_txt("VIDEOS"))||qbs_equal(qbs_ucase(context),qbs_new_txt("MY VIDEOS"))){
-		#ifdef QB64_ANDROID
-			mkdir(android_dir_video,0770);
-			return qbs_new_txt(android_dir_video);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,14,NULL,0,osPath))){ //Videos
@@ -29588,10 +29499,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("DOWNLOAD"))||qbs_equal(qbs_ucase(context),qbs_new_txt("DOWNLOADS"))){
-		#ifdef QB64_ANDROID
-	        	mkdir(android_dir_downloads,0770);
-			return qbs_new_txt(android_dir_downloads);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,0x0028,NULL,0,osPath))){//user folder
@@ -29603,10 +29510,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("DESKTOP"))){
-		#ifdef QB64_ANDROID
-			mkdir(android_dir_downloads,0770);
-			return qbs_new_txt(android_dir_downloads);
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,0,NULL,0,osPath))){ //Desktop
@@ -29616,9 +29519,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("APPDATA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("APPLICATION DATA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("PROGRAM DATA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("DATA"))){
-		#ifdef QB64_ANDROID			
-			return qbs_add(rootDir,qbs_new_txt("/"));
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,0x001a,NULL,0,osPath))){ //CSIDL_APPDATA (%APPDATA%)
@@ -29628,9 +29528,6 @@ qbs *func__dir(qbs* context_in){
 	}
 
 	if (qbs_equal(qbs_ucase(context),qbs_new_txt("LOCALAPPDATA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("LOCAL APPLICATION DATA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("LOCAL PROGRAM DATA"))||qbs_equal(qbs_ucase(context),qbs_new_txt("LOCAL DATA"))){
-		#ifdef QB64_ANDROID
-			return qbs_add(rootDir,qbs_new_txt("/"));
-		#endif
 		#ifdef QB64_WINDOWS
 			CHAR osPath[MAX_PATH];
 			if(SUCCEEDED(SHGetFolderPathA(NULL,0x001c,NULL,0,osPath))){ //CSIDL_LOCAL_APPDATA (%LOCALAPPDATA%)
@@ -29647,266 +29544,13 @@ qbs *func__dir(qbs* context_in){
 		}
 		return qbs_new_txt(".\\");//current location
 	#else
-		#ifdef QB64_ANDROID
-            		mkdir(android_dir_downloads,0770);
-			return qbs_new_txt(android_dir_downloads);
-		#endif
 		return qbs_new_txt("./");//current location
 	#endif
 }
 
   extern void set_dynamic_info();
-
-
-
-#ifdef QB64_ANDROID
-
-        void android_get_file_asset(AAssetManager* mgr, char *filename){
-                AAsset* asset = AAssetManager_open(mgr, filename, AASSET_MODE_STREAMING);
-                char buf[BUFSIZ];
-                int nb_read = 0;
-                FILE* out = fopen(filename, "w");
-                while ((nb_read = AAsset_read(asset, buf, BUFSIZ)) > 0)        fwrite(buf, nb_read, 1, out);
-                fclose(out);
-                AAsset_close(asset);
-        }
-
-        //notes:
-        // * Actual entry point is in fg_runtime_android.c which has been modified to pass 'android_app' to us
-
-        int main(int argc, char* argv[], struct android_app* android_state_in) {
-
-        android_state=android_state_in;
-        android_vm=android_state->activity->vm;
-        android_env=android_state->activity->env;
-
-        struct android_app* app=android_state_in;
-          JNIEnv* env = app->activity->env;
-        JavaVM* vm = app->activity->vm;
-        vm->AttachCurrentThread( &env, NULL);
-
-        // Get a handle on our calling NativeActivity class
-        jclass activityClass = env->GetObjectClass( app->activity->clazz);
-        // Get path to files dir
-        jmethodID getFilesDir = env->GetMethodID( activityClass, "getFilesDir", "()Ljava/io/File;");
-        jobject file = env->CallObjectMethod( app->activity->clazz, getFilesDir);
-        jclass fileClass = env->FindClass( "java/io/File");
-        jmethodID getAbsolutePath = env->GetMethodID( fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-        jstring jpath = (jstring)env->CallObjectMethod( file, getAbsolutePath);
-        const char* app_dir = env->GetStringUTFChars( jpath, NULL);
-        // chdir in the application files directory
-        LOGI("app_dir: %s", app_dir);
-        chdir(app_dir);
-        env->ReleaseStringUTFChars( jpath, app_dir);
-        // Pre-extract assets, to avoid Android-specific file opening
-
-        AAssetManager* mgr = app->activity->assetManager;
-        
-        /* Old code which pulled all root directory assets, in QB64 assets are specified in code so this just wastes time
-        AAssetDir* assetDir = AAssetManager_openDir(mgr, "");
-        const char* filename = (const char*)NULL;        
-        while ((filename = AAssetDir_getNextFileName(assetDir)) != NULL) {
-                android_get_file_asset(mgr,filename);
-        }
-        AAssetDir_close(assetDir);
-        */
-
-        #include "../temp/assets.txt"
-
-	//get _DIR$(...) paths
-	{//upscope
-
-	jfieldID fieldId;
-	jclass envClass = env->FindClass("android/os/Environment");
-	char** targetString;
-	jstring jstrParam;
-	char* s;
-	jstring sType;
-	for (int i=1;i<=6;i++){
-
-		if (i==1){
-			targetString=&android_dir_dcim;
-			fieldId=env->GetStaticFieldID(envClass, "DIRECTORY_DCIM", "Ljava/lang/String;");
-		}
-		if (i==2){
-			targetString=&android_dir_downloads;
-			fieldId=env->GetStaticFieldID(envClass, "DIRECTORY_DOWNLOADS", "Ljava/lang/String;");
-		}
-		if (i==3){
-			targetString=&android_dir_documents;
-			fieldId=env->GetStaticFieldID(envClass, "DIRECTORY_DOCUMENTS", "Ljava/lang/String;");
-		}
-		if (i==4){
-			targetString=&android_dir_pictures;
-			fieldId=env->GetStaticFieldID(envClass, "DIRECTORY_PICTURES", "Ljava/lang/String;");
-		}
-		if (i==5){
-			targetString=&android_dir_music;
-			fieldId=env->GetStaticFieldID(envClass, "DIRECTORY_MUSIC", "Ljava/lang/String;");
-		}
-		if (i==6){
-			targetString=&android_dir_video;
-			fieldId=env->GetStaticFieldID(envClass, "DIRECTORY_MOVIES", "Ljava/lang/String;");
-		}
-		
-
-		//retrieve jstring representation of environment variable
-		jstrParam = (jstring)env->GetStaticObjectField(envClass, fieldId);
-		s = env->GetStringUTFChars(jstrParam, NULL);
-		LOGI("String name of Environment.Variable: %s", s);
-		env->ReleaseStringUTFChars(jstrParam, s);
-
-		//use jstring representation to retrieve folder name
-		sType=jstrParam;
-		jmethodID midEnvironmentGetExternalStoragePublicDirectory = env->GetStaticMethodID(envClass, "getExternalStoragePublicDirectory", "(Ljava/lang/String;)Ljava/io/File;");
-		jobject oExternalStorageDirectory = NULL;
-		oExternalStorageDirectory = env->CallStaticObjectMethod(envClass, midEnvironmentGetExternalStoragePublicDirectory, sType);
-		jclass cFile = env->GetObjectClass(oExternalStorageDirectory);
-		jmethodID midFileGetAbsolutePath = env->GetMethodID(cFile, "getAbsolutePath", "()Ljava/lang/String;");
-		env->DeleteLocalRef(cFile);
-		jstring extStoragePath = (jstring)env->CallObjectMethod(oExternalStorageDirectory, midFileGetAbsolutePath);
-		const char* extStoragePathString = env->GetStringUTFChars(extStoragePath, NULL);
-		LOGI("Path: %s", extStoragePathString);// /storage/emulated/0/Download
-		
-		*targetString=(char*)calloc(1,strlen(extStoragePathString)+2);
-		memcpy(*targetString,extStoragePathString,strlen(extStoragePathString));
-		(*targetString)[strlen(extStoragePathString)]=47;//append "/"
-
-		env->ReleaseStringUTFChars(extStoragePath, extStoragePathString);
-		env->DeleteLocalRef(sType);
-	}
-
-	}//downscope
-
-
-
-
-
-//JavaVMAttachArgs args = { JNI_VERSION_1_6, NULL, NULL };
-//vm->AttachCurrentThread( &env, &args );
-
-
-//jmethodID activityConstructor =  env->GetMethodID(app->activity->clazz, "<init>", "()V");
-//jobject object = env->NewObject(app->activity->clazz, activityConstructor);
-
-//jmethodID toastID = env->GetMethodID(app->activity->clazz, "toast", "(Ljava/lang/String;)V");
-//jstring message1 = env->NewStringUTF("This comes from jni.");
-//env->CallVoidMethod(object, toastID, message1);
-//vm->DetachCurrentThread();
-
-
-//jstring jstr = env->NewStringUTF("This comes from jni.");
-//    jmethodID messageMe = env->GetMethodID(app->activity->clazz, "toast", "(Ljava/lang/String;)V");
-//    jobject result = env->CallObjectMethod(obj, messageMe, jstr);
-
-//    const char* str = (*env)->GetStringUTFChars(env,(jstring) result, NULL); // should be released but what a heck, it's a tutorial :)
-//    printf("%s\n", str);
-
-//    return (*env)->NewStringUTF(env, str);
-
-
-//JNIEXPORT void JNICALL Java_com_example_jnitoast_MainActivity_displayToast
-  //(JNIEnv *pEnv, jobject thiz, jobject txt, jint time)
-//{
-
-/*
-        jclass Toast = NULL;
-        jobject toast = NULL;
-        jmethodID makeText = NULL;
-        jmethodID show = NULL;
-
-        Toast = env->FindClass("android/widget/Toast");
-        if(NULL == Toast)
-        {
-                LOGI("FindClass failed");
-                return;
-        }
-
-        makeText = env->GetStaticMethodID(Toast,"makeText", "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;");
-        if( NULL == makeText )
-        {
-                LOGI("FindStaticMethod failed");
-                return;
-        }
-
-
-        //toast = env->CallStaticObjectMethod(Toast, makeText, thiz, txt, time);
-        toast = env->CallStaticObjectMethod(Toast, makeText, thiz, txt, time);
-        if ( NULL == toast) 
-        {
-                LOGI("CALLSTATICOBJECT FAILED");
-                return;
-        }
-*/
-/*
-        show = env->GetMethodID(pEnv,Toast,"show","()V");
-        if ( NULL == show )
-        {
-                LOGI("GetMethodID Failed");
-                return;
-        }
-        env->CallVoidMethod(pEnv,toast,show);
-*/
-
-
-
-
-
-
-
-
-
-        /*
-        AAsset* asset = AAssetManager_open(mgr, filename, AASSET_MODE_STREAMING);
-        char buf[BUFSIZ];
-        int nb_read = 0;
-        FILE* out = fopen(filename, "w");
-        while ((nb_read = AAsset_read(asset, buf, BUFSIZ)) > 0)
-        fwrite(buf, nb_read, 1, out);
-        fclose(out);
-        AAsset_close(asset);
-        }
-        */
-
-
-
-/*        
-        // Get a handle on our calling NativeActivity class
-        jclass activityClass = env->GetObjectClass( app->activity->clazz);
-        // Get path to files dir
-        jmethodID getFilesDir = env->GetMethodID( activityClass, "getFilesDir", "()Ljava/io/File;");
-        jobject file = env->CallObjectMethod( app->activity->clazz, getFilesDir);
-        jclass fileClass = env->FindClass( "java/io/File");
-        jmethodID getAbsolutePath = env->GetMethodID( fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-        jstring jpath = (jstring)env->CallObjectMethod( file, getAbsolutePath);
-        const char* app_dir = env->GetStringUTFChars( jpath, NULL);
-        // chdir in the application files directory
-        LOGI("app_dir: %s", app_dir);
-        chdir(app_dir);
-        env->ReleaseStringUTFChars( jpath, app_dir);
-        // Pre-extract assets, to avoid Android-specific file opening
-        {
-        AAssetManager* mgr = app->activity->assetManager;
-        AAssetDir* assetDir = AAssetManager_openDir(mgr, "");
-        const char* filename = (const char*)NULL;
-        while ((filename = AAssetDir_getNextFileName(assetDir)) != NULL) {
-        AAsset* asset = AAssetManager_open(mgr, filename, AASSET_MODE_STREAMING);
-        char buf[BUFSIZ];
-        int nb_read = 0;
-        FILE* out = fopen(filename, "w");
-        while ((nb_read = AAsset_read(asset, buf, BUFSIZ)) > 0)
-        fwrite(buf, nb_read, 1, out);
-        fclose(out);
-        AAsset_close(asset);
-        }
-        AAssetDir_close(assetDir);
-            }
-*/
-        
-#else
-        int main( int argc, char* argv[] ){
-#endif
-
+  
+  int main( int argc, char* argv[] ){
 #ifdef QB64_LINUX
 #ifndef QB64_MACOSX
 #ifdef X11
@@ -30178,7 +29822,6 @@ qbs_set(startDir,func__cwd());
 
 //switch to directory of this EXE file
 //http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
-#ifndef QB64_ANDROID
 #ifdef QB64_WINDOWS
 #ifndef QB64_MICROSOFT
     static char *exepath=(char*)malloc(65536);
@@ -30211,7 +29854,6 @@ qbs_set(startDir,func__cwd());
                 }
         #endif
 #endif
-#endif
 
 rootDir=qbs_new(0,0);
 qbs_set(rootDir,func__cwd());
@@ -30219,11 +29861,6 @@ qbs_set(rootDir,func__cwd());
     unknown_opcode_mess=qbs_new(0,0);
     qbs_set(unknown_opcode_mess,qbs_new_txt_len("Unknown Opcode (  )\0",20));
 
-#ifdef QB64_ANDROID
-    func_command_str=qbs_new(0,0);
-    func_command_array = NULL;
-    func_command_count = 0;
-#else
     i=argc;
     if (i>1){
       //calculate required size of COMMAND$ string
@@ -30246,8 +29883,6 @@ qbs_set(rootDir,func__cwd());
 
     func_command_count = argc;
     func_command_array = argv;
-#endif
-
 
 #ifndef NO_S_D_L
 
@@ -30687,11 +30322,6 @@ QB64_GAMEPAD_INIT();
 #ifdef QB64_GLUT
     glutInit(&argc, argv);
 
-#ifdef QB64_ANDROID
-   //Note: GLUT_ACTION_CONTINUE_EXECUTION is not supported in Android
-   glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
-#endif
-
 #ifdef QB64_MACOSX  
           //This is a global keydown handler for OSX, it requires assistive devices in asseccibility to be enabled
           //becuase of security concerns (QB64 will not use this)
@@ -30820,16 +30450,6 @@ QB64_GAMEPAD_INIT();
     }
     window_exists=1;
 
-
-//alert("hello");
-
-
-//no segfault here
-
-
- #ifdef QB64_GLES
-  framebufferobjects_supported=1;
- #else
     GLenum err = glewInit();
     if (GLEW_OK != err)
       {
@@ -30838,11 +30458,6 @@ QB64_GAMEPAD_INIT();
     //alert( (char*)glewGetString(GLEW_VERSION));
 
     if (glewIsSupported("GL_EXT_framebuffer_object")) framebufferobjects_supported=1;
-#endif
-
-//no segfault here
-
-
     glutDisplayFunc(GLUT_DISPLAY_REQUEST);
 
 #ifdef QB64_WINDOWS
@@ -31400,15 +31015,9 @@ QB64_GAMEPAD_INIT();
 
     static uint8 BGRA_to_RGBA;//set to 1 to invert the output to RGBA
     BGRA_to_RGBA=0;//default is 0 but 1 is fun
-#ifdef QB64_GLES1 //OPENGL ES does not support GL_BGRA
-    BGRA_to_RGBA=1;
-#endif
     if (cloud_app){ //more converters handle the RGBA data format than BGRA which is dumped
       BGRA_to_RGBA=1;
     }
-
-
-
 
     if (lock_display==1){lock_display=2; Sleep(0);}
 
@@ -33245,8 +32854,6 @@ QB64_GAMEPAD_INIT();
   #ifdef QB64_LINUX
   #ifdef QB64_GUI //Cannot have X11 events without a GUI
   #ifndef QB64_MACOSX
-  #ifndef QB64_ANDROID
-
 
   extern "C" void qb64_os_event_linux(XEvent *event, Display *display, int *qb64_os_event_info){
     if (*qb64_os_event_info==OS_EVENT_PRE_PROCESSING){
@@ -33391,7 +32998,7 @@ else{
     }
     return;
   }
-  #endif
+
   #endif
   #endif
   #endif

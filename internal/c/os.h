@@ -15,9 +15,6 @@
  #ifdef __APPLE__
   #define QB64_MACOSX
  #endif
- #ifdef __ANDROID__
-  #define QB64_ANDROID
- #endif
 #endif
 
 //common types
