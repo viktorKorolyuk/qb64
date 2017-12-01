@@ -1,6 +1,8 @@
-# qb64
+<h1 align="center">
+qb64
 
---Forked from: Galleondragon/qb64--
+Forked from: Galleondragon/qb64
+</h1>
 
 ## Table of contents
 
@@ -19,7 +21,7 @@
 - MacOSX
   - Latest version of [Xcode](https://developer.apple.com/xcode/).
 
-## Setup.
+## Setup
 
 To begin using qb64 run the appropriate command for your system:
 
@@ -59,7 +61,7 @@ find . -name '*.command' -exec perl -pi -e 's/\r\n|\n|\r/\n/g' {} \;
 ```
 
 Explanation:
-The code finds any executables in the directory and removes any return characters. It seems the issue is no longer present in the current builds.
+The code finds all executables in the directory (under the appropriate name) and removes any return characters. It seems the issue is no longer present in the current builds.
 
 \[[source](http://www.qb64.net/forum/index.php?topic=13359.msg115525#msg115525)\]
 
