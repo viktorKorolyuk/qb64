@@ -2,44 +2,7 @@
 #include "libqb.h"
 
 #ifdef QB64_GUI
- #ifndef QB64_GLES
-  #include "parts/core/glew/src/glew.c"
- #else
-  //GLEW does not appear to support GLES, so "wrangle" the required functionality here
-  #define glGenFramebuffers glGenFramebuffersOES
-  #define glGenFramebuffersEXT glGenFramebuffersOES
-  #define glDeleteFramebuffers glDeleteFramebuffersOES
-  #define glDeleteFramebuffersEXT glDeleteFramebuffersOES
-  #define glBindFramebuffer glBindFramebufferOES
-  #define glBindFramebufferEXT glBindFramebufferOES
-  #define glFramebufferTexture2D glFramebufferTexture2DOES
-  #define glFramebufferTexture2DEXT glFramebufferTexture2DOES
-  #define glFramebufferRenderbuffer glFramebufferRenderbufferOES
-  #define glCheckFramebufferStatus glCheckFramebufferStatusOES
-  #define GL_FRAMEBUFFER GL_FRAMEBUFFER_OES
-  #define GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_OES
-  #define glGenRenderbuffers glGenRenderbuffersOES
-  #define glDeleteRenderbuffers glDeleteRenderbuffersOES
-  #define glBindRenderbuffer glBindRenderbufferOES
-  #define glRenderbufferTexture2D glRenderbufferTexture2DOES
-  #define glRenderbufferTexture2DEXT glRenderbufferTexture2DOES
-  #define glRenderbufferRenderbuffer glRenderbufferRenderbufferOES
-  #define glGetRenderbufferParameteriv glGetRenderbufferParameterivOES
-  #define glRenderbufferStorage glRenderbufferStorageOES
-  #define GL_RENDERBUFFER GL_RENDERBUFFER_OES
-  #define GL_RENDERBUFFER_WIDTH GL_RENDERBUFFER_WIDTH_OES
-  #define GL_RENDERBUFFER_HEIGHT GL_RENDERBUFFER_HEIGHT_OES
-  #define GL_RENDERBUFFER_INTERNAL_FORMAT GL_RENDERBUFFER_INTERNAL_FORMAT_OES
-  #define GL_MAX_RENDERBUFFER_SIZE GL_MAX_RENDERBUFFER_SIZE_OES
-  #define GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0_OES
-  #define GL_DEPTH_ATTACHMENT GL_DEPTH_ATTACHMENT_OES
-  #define GL_DEPTH_COMPONENT16 GL_DEPTH_COMPONENT16_OES
-  #define glOrtho glOrthof
-  //...
-  
-  #define GL_BGRA GL_RGBA //this is to prevent errors and ensure RGBA is used even when BGRA is supported
-
- #endif
+ #include "parts/core/glew/src/glew.c"
 #endif
 
 
@@ -184,6 +147,7 @@ int32 qloud_next_input_index=1;
 
 int32 window_exists=0;
 int32 create_window=0;
+int32 window_focused=0; //Not used on Windows
 uint8 *window_title=NULL;
 
 double max_fps=60;//60 is the default
@@ -1072,6 +1036,7 @@ typedef enum {
   QBVK_NUMLOCK    = 300,
   QBVK_CAPSLOCK   = 301,
   QBVK_SCROLLOCK  = 302,
+  //If more modifiers are added, the window defocus code in qb64_os_event_linux must be altered
   QBVK_RSHIFT     = 303,
   QBVK_LSHIFT     = 304,
   QBVK_RCTRL      = 305,
@@ -14343,6 +14308,8 @@ int32 func__hasfocus() {
         #ifdef QB64_WINDOWS
             while (!window_handle){Sleep(100);}
             return -(window_handle==GetForegroundWindow());
+        #elif defined(QB64_LINUX) && !defined(QB64_MACOSX)
+            return window_focused;
         #endif
     #endif
     return -1;
@@ -31247,28 +31214,11 @@ QB64_GAMEPAD_INIT();
     }
     window_exists=1;
 
-
-//alert("hello");
-
-
-//no segfault here
-
-
- #ifdef QB64_GLES
-  framebufferobjects_supported=1;
- #else
     GLenum err = glewInit();
-    if (GLEW_OK != err)
-      {
-    alert( (char*)glewGetErrorString(err));
-      }
-    //alert( (char*)glewGetString(GLEW_VERSION));
-
+    if (GLEW_OK != err) {
+        alert( (char*)glewGetErrorString(err));
+    }
     if (glewIsSupported("GL_EXT_framebuffer_object")) framebufferobjects_supported=1;
-#endif
-
-//no segfault here
-
 
     glutDisplayFunc(GLUT_DISPLAY_REQUEST);
 
@@ -31827,9 +31777,6 @@ QB64_GAMEPAD_INIT();
 
     static uint8 BGRA_to_RGBA;//set to 1 to invert the output to RGBA
     BGRA_to_RGBA=0;//default is 0 but 1 is fun
-#ifdef QB64_GLES1 //OPENGL ES does not support GL_BGRA
-    BGRA_to_RGBA=1;
-#endif
     if (cloud_app){ //more converters handle the RGBA data format than BGRA which is dumped
       BGRA_to_RGBA=1;
     }
@@ -33694,137 +33641,22 @@ QB64_GAMEPAD_INIT();
         }
 
         x11filter(event);//handles clipboard request events from other applications
-
-/*
-Atom a1, a2, type;
-int format, result;
-unsigned long len, bytes_left, dummy;
-unsigned char *data;
-Window Sown;
-Display *dpy=X11_display;
-
-Sown = XGetSelectionOwner (dpy, XA_PRIMARY);
-//printf ("Selection owner%i\n", (int)Sown);
-if (Sown != None) {
-
-
-XConvertSelection (dpy, XA_PRIMARY, XA_STRING, None,
-Sown, CurrentTime);
-*/
-
-
-////XFlush (dpy);
-
-//
-// Do not get any data, see how much data is there
-//
-
-/*
-XGetWindowProperty (dpy, Sown,
-XA_STRING, // Tricky..
-0, 0, // offset - len
-0, // Delete 0==FALSE
-AnyPropertyType, //flag
-&type, // return type
-&format, // return format
-&len, &bytes_left, //that
-&data);
-//printf ("type:%i len:%i format:%i byte_left:%i\n",
-//(int)type, len, format, bytes_left);
-// DATA is There
-
-
-
-if (bytes_left > 0)
-{
-result = XGetWindowProperty (dpy, Sown,
-XA_STRING, 0,bytes_left,0,
-AnyPropertyType, &type,&format,
-&len, &dummy, &data);
-if (result == Success){
-//printf ("DATA IS HERE!!```%s'''\n",
-//data);
-
-XFree (data);
-//return qbs_new_txt((const char*)data);
-}else{
- XFree (data);
-}
-}
-//return qbs_new(0,1);
-}
-*/
-
-
-
-
-
-
-
-
-
-
-
-        //if (event->type==KeyPress){                
-        //}
-
-/*
-
-    XGenericEventCookie *cookie = &event->xcookie;
-    XIRawEvent      *re;
-
-    Window dpy=event->xexpose.window;
-
-    //out
-    Window          root_ret, child_ret;
-    int         root_x, root_y;
-    int         win_x, win_y;
-    unsigned int        mask;
-
-    if (cookie->type != GenericEvent ||
-        cookie->extension != xi_opcode ||
-        !XGetEventData(dpy, cookie))
-{
-}
-else{
-    switch (cookie->evtype) {
-    case XI_RawMotion:
-        re = (XIRawEvent *) cookie->data;
-        XQueryPointer(dpy, DefaultRootWindow(dpy),
-                  &root_ret, &child_ret, &root_x, &root_y, &win_x, &win_y, &mask);
-        //cout<<re->raw_values[0];
-        //printf ("raw %g,%g root %d,%d\n",
-        //    re->raw_values[0], re->raw_values[1],
-        //    root_x, root_y);
-        break;
     }
-    XFreeEventData(dpy, cookie);
-}
 
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
     if (*qb64_os_event_info==OS_EVENT_POST_PROCESSING){
+        switch (event->type) {
+            case EnterNotify:
+            window_focused = -1;
+            break;
 
-
-
+            case LeaveNotify:
+            window_focused = 0;
+            //Iterate over all modifiers
+            for (uint32 key = VK + QBVK_RSHIFT; key <= VK + QBVK_MODE; key++) {
+                if (keyheld(key)) keyup(key);
+            }
+            break;
+        }
     }
     return;
   }
